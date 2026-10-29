@@ -1,0 +1,64 @@
+﻿/* Estilos Base */
+body {
+    background-color: #f1f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.hero-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Zona de Carga de Imágenes */
+.upload-zone {
+    border: 2px dashed #0d6efd;
+    border-radius: 10px;
+    background-color: #fafbfc;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.upload-zone:hover {
+    background-color: #f1f6ff;
+    border-color: #0b5ed7;
+}
+
+/* Indicador de Archivo Seleccionado */
+#file-chosen {
+    min-height: 24px;
+    word-break: break-all;
+}
+
+/* Vista Previa de Resultados y Grad-CAM */
+#img-resultado {
+    max-height: 380px;
+    object-fit: contain;
+    width: 100%;
+    background-color: #000;
+}
+
+/* Personalización de Barras de Progreso */
+.progress {
+    background-color: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Footer */
+.footer {
+    font-size: 0.85rem;
+    color: #6c757d;
+}

@@ -1,0 +1,903 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroAI | Enterprise Agricultural Intelligence</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- CSS Externo -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <!-- Librerías de exportación -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --brand-green: #059669;
+            --brand-green-hover: #047857;
+            --brand-accent: #34d399;
+            --dark-surface: #0f172a;
+            --bg-light: #f8fafc;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-light);
+            color: #1e293b;
+            letter-spacing: -0.011em;
+        }
+        
+        /* --- ENCABEZADO SUPERIOR MODERNO Y ELEGANTE --- */
+        .navbar-premium {
+            background: #0f172a !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        
+        /* Logotipo corporativo dinámico */
+        .brand-logo-container {
+            transition: transform 0.3s ease;
+        }
+        .brand-logo-container:hover {
+            transform: scale(1.02);
+        }
+        .brand-icon-glowing {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.35rem;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .brand-logo-container:hover .brand-icon-glowing {
+            transform: rotate(12deg) scale(1.08);
+        }
+        .brand-title-glowing {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #ffffff !important;
+        }
+        .pro-badge-text {
+            color: #34d399;
+        }
+        .brand-subtitle-interactive {
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+        
+        /* Menú de navegación principal */
+        .navbar-nav .nav-link {
+            color: #cbd5e1 !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+            transition: all 0.25s ease;
+        }
+        .navbar-nav .nav-link:hover, .navbar-nav .nav-link:focus {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+        }
+        
+        /* Menús desplegables modernos, claros y legibles */
+        .dropdown-menu {
+            background-color: #1e293b !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            padding: 0.8rem;
+            margin-top: 10px !important;
+            width: 380px !important;
+            max-width: 90vw !important;
+            animation: fadeInDropdown 0.25s ease forwards;
+        }
+        @keyframes fadeInDropdown {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-item {
+            color: #e2e8f0 !important;
+            border-radius: 8px;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.9rem;
+            font-weight: 400;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            line-height: 1.45;
+            transition: all 0.2s ease;
+        }
+        .dropdown-item:hover, .dropdown-item:focus {
+            background: linear-gradient(90deg, #059669 0%, #047857 100%) !important;
+            color: #ffffff !important;
+            transform: translateX(6px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+        .dropdown-header {
+            color: #34d399 !important;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .dropdown-item-text {
+            color: #94a3b8 !important;
+        }
+        
+        /* Botones de usuario y autenticación */
+        .user-badge-premium {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 5px 14px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: #ffffff;
+            font-size: 0.87rem;
+            font-weight: 500;
+        }
+        .user-avatar-glowing {
+            width: 28px;
+            height: 28px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.85rem;
+        }
+        .btn-saas-exit {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.87rem;
+            transition: all 0.2s ease;
+        }
+        .btn-saas-exit:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-saas-ghost {
+            background: transparent;
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 8px;
+            padding: 7px 15px;
+            font-size: 0.87rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-saas-ghost:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.35);
+        }
+        .btn-saas-primary-pro {
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 7px 15px;
+            font-size: 0.87rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.35);
+            transition: all 0.2s ease;
+        }
+        .btn-saas-primary-pro:hover {
+            background: #047857;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Resto de componentes */
+        .premium-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 10px 25px -5px rgba(0, 0, 0, 0.03);
+            transition: all 0.25s ease;
+        }
+        .badge-hero-pill {
+            background-color: #e6f4ea !important;
+            color: #0f5132 !important;
+            border: 1px solid #badbcc !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.03em;
+        }
+        .hero-gallery-container {
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            background-color: #0b0f19;
+            width: 100%;
+            height: 480px;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hero-gallery-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: var(--bg-blur-img);
+            background-size: cover;
+            background-position: center;
+            filter: blur(25px) brightness(0.35);
+            transform: scale(1.2);
+            z-index: 1;
+        }
+        .hero-gallery-view {
+            position: relative;
+            height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            z-index: 2;
+            transition: transform 0.4s ease, opacity 0.3s ease;
+            filter: drop-shadow(0 10px 25px rgba(0,0,0,0.7));
+        }
+        .hero-gallery-badge {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 5;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .hero-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 6;
+            transition: all 0.2s ease;
+            opacity: 0;
+        }
+        .hero-gallery-container:hover .hero-nav-btn {
+            opacity: 1;
+        }
+        .hero-nav-btn:hover {
+            background: var(--brand-green);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .hero-nav-btn.prev { left: 12px; }
+        .hero-nav-btn.next { right: 12px; }
+        .thumb-nav-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scroll-behavior: smooth;
+        }
+        .thumb-item {
+            width: 82px;
+            height: 58px;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            opacity: 0.65;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+        .thumb-item.active, .thumb-item:hover {
+            opacity: 1;
+            border-color: var(--brand-green);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+        }
+        .thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .upload-zone-modern {
+            border: 2px dashed #cbd5e1;
+            border-radius: 14px;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .upload-zone-modern:hover {
+            border-color: var(--brand-green);
+            background: #f0fdf4;
+            cursor: pointer;
+        }
+        .tech-info-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+        .btn-brand {
+            background-color: var(--brand-green);
+            color: #ffffff;
+            border: none;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 9px 20px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-brand:hover {
+            background-color: var(--brand-green-hover);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <!-- Header / Navigation Bar Ultra-Dynamic -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-premium sticky-top">
+        <div class="container-fluid px-2 px-lg-4">
+            
+            <!-- Logotipo Corporativo Dinámico y Resplandeciente -->
+            <a class="navbar-brand brand-logo-container me-4 d-flex align-items-center gap-3 text-decoration-none" href="/">
+                <div class="brand-icon-glowing">
+                    <i class="bi bi-cpu-fill"></i>
+                </div>
+                <div class="d-flex flex-column">
+                    <span class="brand-title-glowing text-white fs-5 lh-1">
+                        AgroAI <span class="pro-badge-text">Pro</span>
+                    </span>
+                    <span class="brand-subtitle-interactive font-mono mt-1">
+                        Análisis Fitosanitario
+                    </span>
+                </div>
+            </a>
+            <button class="navbar-toggler border-0 shadow-none p-1.5" type="button" data-bs-toggle="collapse" data-bs-target="#navbarAgroAI">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarAgroAI">
+                <!-- Menú de Opciones Interactivas -->
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center gap-1">
+                    
+                    <!-- Fitosanitario -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-shield-check text-success"></i>
+                            <span>Análisis Fitosanitario</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header fw-bold"><i class="bi bi-patch-check-fill me-1"></i> ¿Qué es un análisis fitosanitario?</h6></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-check2 me-2"></i>Un análisis fitosanitario es una evaluación técnica y científica destinada a diagnosticar el estado de salud de los cultivos y detectar la presencia de plagas, hongos, bacterias, virus o deficiencias nutricionales que puedan afectar su desarrollo.</a></li>
+                            <li><hr class="dropdown-divider border-secondary"></li>
+                            <li><span class="dropdown-item-text small">Precisión Diagnóstica: 98.4%</span></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Segmentación U-Net -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-layers text-success"></i>
+                            <span>Segmentación U-NET</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header fw-bold"><i class="bi bi-intersect me-1"></i> ¿Qué es la Segmentación U-NET?</h6></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-check2 me-2"></i>U-Net es una arquitectura de red neuronal convolucional diseñada para la segmentación semántica precisa de imágenes, capaz de aislar estructuras y generar máscaras detalladas píxel a píxel.</a></li>
+                            <li><hr class="dropdown-divider border-secondary"></li>
+                            <li><span class="dropdown-item-text small">Tiempo Inferencia: &lt; 180 ms</span></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Tecnologías -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-cpu text-success"></i>
+                            <span>Tecnologías</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header fw-bold"><i class="bi bi-diagram-3-fill me-1"></i> Stack PyTorch</h6></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-robot me-2"></i>EfficientNet-B0 (Clasificador)</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-shield-exclamation me-2"></i>Anti-OOD Isolation Forest</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-server me-2"></i>Flask + SQLite Engine</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <!-- Área de Usuario y Autenticación -->
+                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                    {% if user_name %}
+                        <div class="user-badge-premium">
+                            <div class="user-avatar-glowing">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            <span class="user-name-text">{{ user_name }}</span>
+                        </div>
+                        <button class="btn btn-saas-exit btn-sm" id="btnLogout">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Salir</span>
+                        </button>
+                    {% else %}
+                        <button class="btn btn-saas-ghost btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            <span>Iniciar Sesión</span>
+                        </button>
+                        <button class="btn btn-saas-primary-pro btn-sm" data-bs-toggle="modal" data-bs-target="#registerModal">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <span>Crear Cuenta</span>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Hero Body Container -->
+    <main class="container my-5 flex-grow-1">
+        
+        <!-- Header Title Section -->
+        <div class="text-center mb-4">
+            <span class="badge badge-hero-pill px-3 py-2 rounded-pill text-uppercase fs-8 mb-3 d-inline-block shadow-sm">
+                🌱 SISTEMA INTELIGENTE DE INSPECCIÓN FOLIAR
+            </span>
+            <h1 class="fw-extrabold text-slate-900 tracking-tight fs-2 fs-md-1 mb-2">
+                Protección Agrónoma Avanzada en Palmas
+            </h1>
+            <p class="text-secondary fs-6 mx-auto fw-normal mb-3" style="max-width: 650px;">
+                Cargue la fotografía foliar para ejecutar inferencia multimodelo mediante EfficientNet-B0 y validación anatómica anti-anomalías.
+            </p>
+            <button class="btn btn-sm btn-outline-success font-semibold px-3 py-1.5 rounded-pill shadow-sm" data-bs-toggle="collapse" data-bs-target="#explanationCollapse">
+                <i class="bi bi-lightbulb-fill text-warning me-1"></i> ¿Cómo funciona el análisis inteligente?
+            </button>
+        </div>
+
+        <!-- Sección Desplegable Informativa -->
+        <div class="collapse mb-5" id="explanationCollapse">
+            <div class="tech-info-card p-4 mx-auto" style="max-width: 850px;">
+                <h5 class="fw-bold text-dark mb-3 text-center"><i class="bi bi-gear-wide-connected text-success me-2"></i> Flujo de Procesamiento IA</h5>
+                <div class="row g-3 text-start">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100 border border-slate-200">
+                            <span class="badge bg-success text-white mb-2">1. Segmentación U-NET</span>
+                            <h6 class="fw-bold text-dark fs-7">Aislamiento Foliar (Bokeh)</h6>
+                            <p class="text-muted small mb-0">La red U-Net genera la máscara binaria píxel a píxel, aislando la hoja y aplicando desenfoque Bokeh al fondo.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100 border border-slate-200">
+                            <span class="badge bg-primary text-white mb-2">2. Detector Anti-OOD</span>
+                            <h6 class="fw-bold text-dark fs-7">Filtro Anatómico</h6>
+                            <p class="text-muted small mb-0">Verifica mediante descriptores fisionómicos que la imagen corresponda a una palma de aceite válida.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100 border border-slate-200">
+                            <span class="badge bg-warning text-dark mb-2">3. EfficientNet-B0</span>
+                            <h6 class="fw-bold text-dark fs-7">Clasificación Fitosanitaria</h6>
+                            <p class="text-muted small mb-0">Evalúa la presencia de patologías como Manchas Foliares o Marchitez con alta precisión.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 items-stretch">
+            
+            <!-- Left Side: Inspection Card -->
+            <div class="col-lg-5">
+                <div class="premium-card p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-cpu text-success"></i> Módulo de Inspección
+                            </h5>
+                            <span class="badge bg-light text-secondary font-medium border">v2.0 AI Engine</span>
+                        </div>
+                        <form id="uploadForm" class="d-flex flex-column h-100">
+                            {% if user_name %}
+                                <div class="upload-zone-modern p-4 my-3 flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center" id="dropZone" onclick="document.getElementById('fileInput').click();">
+                                    <div id="dropZoneDefault">
+                                        <div class="bg-success bg-opacity-10 p-3 rounded-circle d-inline-block mb-3 text-success">
+                                            <i class="bi bi-cloud-arrow-up-fill fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-1">Arrastre o seleccione la imagen foliar</h6>
+                                        <p class="text-muted small mb-0">Soporta formatos alta resolución: JPG, PNG, WEBP</p>
+                                    </div>
+                                    <div id="previewContainer" class="d-none w-100">
+                                        <img id="imagePreview" src="" class="rounded-2 mb-2 shadow-sm" alt="Previsualización" style="max-height: 190px; object-fit: contain; width: 100%;">
+                                        <p id="fileName" class="text-secondary small mb-0 font-semibold"></p>
+                                    </div>
+                                    <input type="file" id="fileInput" name="file" accept="image/*" class="d-none">
+                                </div>
+                                <div class="d-flex gap-2 mt-auto pt-2">
+                                    <button type="submit" class="btn btn-brand w-100 py-2.5 font-bold shadow-sm" id="btnAnalizar">
+                                        <i class="bi bi-play-fill me-1 fs-5 align-middle"></i> Ejecutar Inferencia
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary py-2.5 font-bold d-none" id="btnReset">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </div>
+                            {% else %}
+                                <div class="upload-zone-modern p-4 my-3 flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                    <div class="bg-light p-3 rounded-circle mb-3 text-secondary border">
+                                        <i class="bi bi-lock-fill fs-3"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">Acceso Restringido</h6>
+                                    <p class="text-muted small mb-0" style="max-width: 260px;">Inicie sesión o registre su cuenta corporativa para desbloquear el módulo de inspección.</p>
+                                </div>
+                                <div class="mt-auto pt-2">
+                                    <button type="button" class="btn btn-brand w-100 py-2.5 font-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                        Iniciar Sesión para Analizar
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Interactive Field Visualizer -->
+            <div class="col-lg-7">
+                <div class="premium-card p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h5 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-camera-reels-fill text-success"></i> Monitoreo y Manejo Fitosanitario
+                                </h5>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-light border rounded-circle text-secondary p-1" id="btnToggleAuto" title="Pausar / Reproducir Rotación Automática" onclick="toggleAutoPlay()">
+                                    <i class="bi bi-pause-fill fs-6" id="iconAuto"></i>
+                                </button>
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20 font-medium">Lote de Palma 04</span>
+                            </div>
+                        </div>
+                        <!-- Main Hero Interactive Container -->
+                        <div class="hero-gallery-container mb-3" id="heroContainer">
+                            <span class="hero-gallery-badge" id="heroBadge">
+                                <i class="bi bi-geo-alt-fill text-success me-1"></i> Cosecha y Corte en Lote
+                            </span>
+                            
+                            <!-- Slider Controls -->
+                            <button class="hero-nav-btn prev" onclick="prevHeroImage()" title="Anterior">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="hero-nav-btn next" onclick="nextHeroImage()" title="Siguiente">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <!-- Interactive Main Image -->
+                            <img id="heroMainView" 
+                                 src="{{ url_for('static', filename='imagenes_del_aplicativo/imagen_1.jpg') }}" 
+                                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1000&q=80';"
+                                 class="hero-gallery-view" 
+                                 alt="Vista Principal de Campo">
+                        </div>
+                        <!-- Extended Thumbnails Gallery (4 Imagenes Reales) -->
+                        <div class="thumb-nav-scroll" id="thumbNav">
+                            <div class="thumb-item active" onclick="setHeroImage(0)">
+                                <img src="{{ url_for('static', filename='imagenes_del_aplicativo/imagen_1.jpg') }}" onerror="this.src='https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=300&q=80'" alt="Cosecha y Corte en Lote">
+                            </div>
+                            <div class="thumb-item" onclick="setHeroImage(1)">
+                                <img src="{{ url_for('static', filename='imagenes_del_aplicativo/imagen_2.jpg') }}" onerror="this.src='https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=300&q=80'" alt="Monitoreo Foliar de Palmas">
+                            </div>
+                            <div class="thumb-item" onclick="setHeroImage(2)">
+                                <img src="{{ url_for('static', filename='imagenes_del_aplicativo/imagen_3.jpg') }}" onerror="this.src='https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=300&q=80'" alt="Mantenimiento y Plateo">
+                            </div>
+                            <div class="thumb-item" onclick="setHeroImage(3)">
+                                <img src="{{ url_for('static', filename='imagenes_del_aplicativo/imagen_4.jpg') }}" onerror="this.src='https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=300&q=80'" alt="Supervisión Agrónoma">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingSpinner" class="text-center my-5 d-none">
+            <div class="spinner-border text-success" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Procesando...</span>
+            </div>
+            <p class="mt-3 text-secondary font-semibold fs-6">Ejecutando inferencia con EfficientNet-B0 y validación anti-OOD...</p>
+        </div>
+
+        <div id="resultContainer" class="mt-5 d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <span class="text-muted font-medium text-xs text-uppercase tracking-wider">Resultado del Diagnóstico</span>
+                    <h2 class="fw-extrabold text-dark mb-1" id="txtDiagnostico">--</h2>
+                    <span class="badge bg-success bg-opacity-10 text-success fs-6 px-3 py-1.5 rounded-pill font-semibold" id="txtConfianza"></span>
+                    <span class="badge fs-6 px-3 py-1.5 rounded-pill font-semibold ms-1" id="badgeSeveridad"></span>
+                </div>
+                <button class="btn btn-outline-danger font-semibold px-4 py-2 rounded-3 shadow-sm" id="btnDownloadPDF">
+                    <i class="bi bi-file-earmark-pdf-fill me-2"></i> Exportar PDF
+                </button>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4">
+                    <div class="premium-card p-3 text-center">
+                        <h6 class="fw-bold text-secondary mb-2">Segmentación U-NET (Bokeh)</h6>
+                        <img id="imgEntrante" src="" class="img-fluid rounded-2 border" alt="Aislamiento" onclick="openZoomModal(this.src, 'Segmentación U-NET (Bokeh)')">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="premium-card p-3 text-center">
+                        <h6 class="fw-bold text-secondary mb-2">Visualización Inferencia</h6>
+                        <img id="imgGradCAM" src="" class="img-fluid rounded-2 border" alt="Grad-CAM" onclick="openZoomModal(this.src, 'Visualización Inferencia')">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="premium-card p-3 text-center">
+                        <h6 class="fw-bold text-secondary mb-2">Distribución Probabilística</h6>
+                        <img id="imgChart" src="" class="img-fluid rounded-2 border" alt="Distribución" onclick="openZoomModal(this.src, 'Distribución Probabilística')">
+                    </div>
+                </div>
+            </div>
+            <div class="premium-card mt-4 p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-clipboard-check text-success me-2"></i> Recomendaciones Agronómicas</h5>
+                <ul class="list-group list-group-flush" id="listAcciones"></ul>
+            </div>
+            <div class="premium-card mt-4 p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history me-2"></i> Historial Reciente de la Sesión</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Marca de Tiempo</th>
+                                <th>Archivo</th>
+                                <th>Diagnóstico</th>
+                                <th>Nivel de Confianza</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableHistorial"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
+                <div class="modal-header bg-dark text-white p-4 border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock text-success me-2"></i> Iniciar Sesión</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="loginAlert" class="alert alert-danger d-none small"></div>
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label class="form-label font-semibold text-dark">Correo Electrónico</label>
+                            <input type="email" id="loginEmail" class="form-control py-2.5 rounded-2" placeholder="nombre@empresa.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label font-semibold text-dark">Contraseña</label>
+                            <div class="input-group"><input type="password" id="loginPassword" class="form-control py-2.5 rounded-start-2" placeholder="••••••••" required><button class="btn btn-outline-secondary" type="button" onclick="togglePassword('loginPassword', 'iconLoginEye')"><i class="bi bi-eye-fill" id="iconLoginEye"></i></button></div>
+                        </div>
+                        <button type="submit" class="btn btn-brand w-100 py-2.5 font-bold">Iniciar Sesión</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
+                <div class="modal-header bg-dark text-white p-4 border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-plus text-success me-2"></i> Crear Cuenta</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="registerAlert" class="alert alert-danger d-none small"></div>
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label class="form-label font-semibold text-dark">Nombre Completo</label>
+                            <input type="text" id="regName" class="form-control py-2.5 rounded-2" placeholder="Ing. Carlos Pérez" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label font-semibold text-dark">Correo Electrónico</label>
+                            <input type="email" id="regEmail" class="form-control py-2.5 rounded-2" placeholder="correo@empresa.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label font-semibold text-dark">Contraseña</label>
+                            <div class="input-group"><input type="password" id="regPassword" class="form-control py-2.5 rounded-start-2" placeholder="••••••••" required><button class="btn btn-outline-secondary" type="button" onclick="togglePassword('regPassword', 'iconRegEye')"><i class="bi bi-eye-fill" id="iconRegEye"></i></button></div>
+                        </div>
+                        <button type="submit" class="btn btn-brand w-100 py-2.5 font-bold">Registrarse</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zoom Modal -->
+    <div class="modal fade" id="zoomModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 bg-dark text-white rounded-3 overflow-hidden">
+                <div class="modal-header border-0 text-white p-3">
+                    <h6 class="modal-title font-semibold" id="zoomModalTitle">Previsualización de Inferencia</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-2 text-center">
+                    <img id="zoomModalImg" src="" class="img-fluid rounded" alt="Zoom">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ficha Técnica y Estándares Modal -->
+    <div class="modal fade" id="qualityModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
+                <div class="modal-header bg-dark text-white p-4 border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-journal-text text-success me-2"></i> Ficha Técnica y Estándares</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div class="premium-card p-4 mb-3">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-award-fill text-success me-2"></i> Información del Proyecto de Grado</h6>
+                        <ul class="list-unstyled text-secondary small mb-0 lh-lg">
+                            <li><strong class="text-dark">Proyecto de Grado:</strong> Programa de Ingeniería en Redes y Telecomunicaciones</li>
+                            <li><strong class="text-dark">Universidad:</strong> Universidad de Pamplona</li>
+                            <li><strong class="text-dark">Desarrollador / Autora:</strong> Laura Daniela Molina Celis</li>
+                            <li><strong class="text-dark">Sistema:</strong> AgroAI - Inteligencia Artificial Fitosanitaria</li>
+                        </ul>
+                    </div>
+                    <div class="premium-card p-4">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-shield-check text-success me-2"></i> Cumplimiento ISO/IEC 25010 (Calidad del Software)</h6>
+                        <div class="row g-3 text-start small">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-white rounded border h-100">
+                                    <strong class="text-dark d-block mb-1">1. Adecuación Funcional</strong>
+                                    <span class="text-muted">Inferencia precisa con EfficientNet-B0, segmentación U-Net y validación anti-OOD.</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-white rounded border h-100">
+                                    <strong class="text-dark d-block mb-1">2. Fiabilidad y Rendimiento</strong>
+                                    <span class="text-muted">Tiempos de respuesta óptimos (&lt; 180 ms) y alta tolerancia a fallos locales.</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-white rounded border h-100">
+                                    <strong class="text-dark d-block mb-1">3. Usabilidad</strong>
+                                    <span class="text-muted">Interfaz SaaS moderna, responsiva y adaptable a dispositivos móviles y de escritorio.</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-white rounded border h-100">
+                                    <strong class="text-dark d-block mb-1">4. Seguridad</strong>
+                                    <span class="text-muted">Control de acceso por sesiones, autenticación robusta y cifrado de datos de usuario.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-top p-3">
+                    <button type="button" class="btn btn-secondary btn-sm px-4 fw-semibold" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+            <footer class="bg-white border-top py-4 mt-auto">
+        <div class="container px-4 text-center text-md-between d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div class="text-muted small text-center text-md-start">
+                <strong>AgroAI System</strong> • Proyecto de Grado | Ingeniería en Redes y Telecomunicaciones | Universidad de Pamplona<br>
+                <span class="text-secondary">Autora: Laura Daniela Molina Celis</span>
+            </div>
+            <button class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1 font-semibold small flex-shrink-0" data-bs-toggle="modal" data-bs-target="#qualityModal">
+                <i class="bi bi-patch-check-fill text-success me-1"></i> Ficha Técnica y Estándares ISO/IEC 25010
+            </button>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS & Main JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <script>
+        const galleryItems = [
+            { src: "{{ url_for('static', filename='imagenes_del_aplicativo/imagen_1.jpg') }}", fallback: 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1000&q=80', title: 'Cosecha y Corte en Lote' },
+            { src: "{{ url_for('static', filename='imagenes_del_aplicativo/imagen_2.jpg') }}", fallback: 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1000&q=80', title: 'Monitoreo Foliar de Palmas' },
+            { src: "{{ url_for('static', filename='imagenes_del_aplicativo/imagen_3.jpg') }}", fallback: 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1000&q=80', title: 'Mantenimiento y Plateo' },
+            { src: "{{ url_for('static', filename='imagenes_del_aplicativo/imagen_4.jpg') }}", fallback: 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1000&q=80', title: 'Supervisión Agrónoma' }
+        ];
+        let currentIndex = 0;
+        let isAutoPlaying = true;
+        let autoPlayInterval = setInterval(nextHeroImage, 4000);
+        function updateHeroDisplay() {
+            const item = galleryItems[currentIndex];
+            const mainImg = document.getElementById('heroMainView');
+            const heroContainer = document.getElementById('heroContainer');
+            const badge = document.getElementById('heroBadge');
+            mainImg.style.opacity = '0.3';
+            setTimeout(() => {
+                mainImg.src = item.src;
+                mainImg.onerror = function() {
+                    if (item.fallback) this.src = item.fallback;
+                };
+                heroContainer.style.setProperty('--bg-blur-img', `url('${item.src}')`);
+                badge.innerHTML = `<i class="bi bi-geo-alt-fill text-success me-1"></i> ${item.title}`;
+                mainImg.style.opacity = '1';
+            }, 150);
+            const thumbs = document.querySelectorAll('.thumb-item');
+            thumbs.forEach((el, idx) => {
+                if (idx === currentIndex) {
+                    el.classList.add('active');
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+        function setHeroImage(index) {
+            currentIndex = index;
+            updateHeroDisplay();
+            resetAutoPlay();
+        }
+        function nextHeroImage() {
+            currentIndex = (currentIndex + 1) % galleryItems.length;
+            updateHeroDisplay();
+        }
+        function prevHeroImage() {
+            currentIndex = (currentIndex - 1 + galleryItems.length) % galleryItems.length;
+            updateHeroDisplay();
+            resetAutoPlay();
+        }
+        function toggleAutoPlay() {
+            const icon = document.getElementById('iconAuto');
+            if (isAutoPlaying) {
+                clearInterval(autoPlayInterval);
+                icon.className = 'bi bi-play-fill fs-6';
+                isAutoPlaying = false;
+            } else {
+                autoPlayInterval = setInterval(nextHeroImage, 4000);
+                icon.className = 'bi bi-pause-fill fs-6';
+                isAutoPlaying = true;
+            }
+        }
+        function resetAutoPlay() {
+            if (isAutoPlaying) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = setInterval(nextHeroImage, 4000);
+            }
+        }
+        function openZoomModal(src, title) {
+            document.getElementById('zoomModalImg').src = src;
+            document.getElementById('zoomModalTitle').innerText = title;
+            new bootstrap.Modal(document.getElementById('zoomModal')).show();
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
