@@ -172,8 +172,6 @@ def aplicar_bokeh(img_pil):
                     ymax = min(h, ymax)
                     mask[ymin:ymax, xmin:xmax] = 1.0
             
-            # CORRECCIÓN: Solo aplicar Bokeh si YOLO detecta al menos un 10% del área de la imagen como hoja.
-            # Si recorta menos, significa que falló (ej. hoja muy gris/seca) y es mejor dejar la imagen original.
             area_total = h * w
             if np.sum(mask) > (0.10 * area_total):
                 fondo_borroso = cv2.GaussianBlur(img_np, (99, 99), 0)
@@ -214,7 +212,6 @@ def generate_confidence_chart(probabilities, classes, predicted_class, confidenc
     y_pos = np.arange(len(classes))
     probs = [p * 100 for p in probabilities]
     
-    # Cambiar color de la barra a amarillo si es Sana pero con baja confianza
     color_barra = "#f59e0b" if (predicted_class == "SANA" and confidence_val < 75.0) else "#10b981"
     
     ax.barh(y_pos, probs, color=color_barra, height=0.45)
@@ -325,19 +322,18 @@ def predict():
         
         bokeh_img = aplicar_bokeh(pil_img)
         
-        # 1. Filtro Anatómico (Extremadamente Relajado)
+        # 1. Filtro Anatómico Balanceado (-0.50): Bloquea cosas que no son plantas, pero acepta hojas reales con daños/amarillamiento
         if detector_dominio is not None:
             feat = extraer_descriptores_fisionomicos(bokeh_img).reshape(1, -1)
             score_anomalia = detector_dominio.decision_function(feat)[0]
             
-            # CORRECCIÓN: Se bajó de -0.08 a -0.25 para permitir hojas amarillentas o manchadas
-            if score_anomalia < -0.25:
+            if score_anomalia < -0.50:
                 return jsonify({
                     "success": False,
-                    "error": f"Error de Selección: La imagen cargada no parece corresponder a una palma de aceite. (Score anatómico: {score_anomalia:.3f})"
+                    "error": f"Error de Selección: La imagen cargada no corresponde a una palma de aceite o planta válida. (Score anatómico: {score_anomalia:.3f})"
                 }), 400
 
-        # 2. Inferencia y Filtro de Energía
+        # 2. Inferencia y Clasificador con umbral flexible (20%)
         if model_eff is not None:
             tensor_img = val_transforms(bokeh_img).unsqueeze(0).to(DEVICE)
             with torch.no_grad():
@@ -348,10 +344,11 @@ def predict():
                 confianza_val = max_prob.item()
                 energy_score = -1.0 * torch.logsumexp(outputs, dim=1).item()
                 
-                if confianza_val < 0.45 or energy_score > -1.0:
+                # Umbral flexible: Solo rechaza si la confianza es menor al 20%
+                if confianza_val < 0.20:
                     return jsonify({
                         "success": False,
-                        "error": f"Imagen rechazada: Superó el filtro anatómico, pero no es reconocida con suficiente certeza por el clasificador (Confianza: {confianza_val*100:.1f}%, Energía: {energy_score:.2f})."
+                        "error": f"Imagen rechazada: Superó el filtro anatómico, pero el modelo no reconoce patrones fitosanitarios claros (Confianza: {confianza_val*100:.1f}%)."
                     }), 400
                 
                 probabilities = probs.cpu().numpy()[0].tolist()
@@ -373,14 +370,14 @@ def predict():
         else:
             gradcam_b64 = pil_to_base64(bokeh_img)
         
-        # CORRECCIÓN: Alerta de Revisión si predice SANA con dudas (ej. hojas grises/secas)
+        # Alerta de Revisión si predice SANA con dudas
         if predicted_class == "SANA" and confidence < 75.0:
             recom_data = {
                 "severidad": "Revisión Manual Sugerida",
                 "color_badge": "bg-warning text-dark",
                 "acciones": [
                     "El modelo predice 'Sana' pero con baja confianza.",
-                    "La hoja podría presentar necrosis avanzada o secamiento excesivo no detectado.",
+                    "La hoja podría presentar síntomas atípicos o factores que dificultan el diagnóstico.",
                     "Realizar inspección visual detallada en campo."
                 ]
             }
