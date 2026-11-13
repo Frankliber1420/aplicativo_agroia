@@ -1,4 +1,4 @@
-﻿import os
+import os
 import io
 import base64
 import numpy as np
@@ -157,14 +157,12 @@ def aplicar_bokeh(img_pil):
             results = model_seg(img_np, verbose=False)[0]
             mask = np.zeros((h, w), dtype=np.float32)
             
-            # Prioridad 1: Usar máscaras de segmentación exactas de YOLO
             if hasattr(results, "masks") and results.masks is not None and len(results.masks) > 0:
                 for m in results.masks.data:
                     m_np = m.cpu().numpy().astype(np.float32)
                     m_resized = cv2.resize(m_np, (w, h))
                     mask = np.maximum(mask, m_resized)
             
-            # Prioridad 2: Respaldo con cajas delimitadoras si no hay máscaras
             elif hasattr(results, "boxes") and results.boxes is not None and len(results.boxes) > 0:
                 for box in results.boxes.xyxy.cpu().numpy():
                     xmin, ymin, xmax, ymax = map(int, box[:4])
@@ -321,20 +319,36 @@ def predict():
         
         bokeh_img = aplicar_bokeh(pil_img)
         
+        # 1. Filtro Anatómico (Relajado)
         if detector_dominio is not None:
             feat = extraer_descriptores_fisionomicos(bokeh_img).reshape(1, -1)
-            es_palma_valida = detector_dominio.predict(feat)[0]
-            if es_palma_valida == -1:
+            score_anomalia = detector_dominio.decision_function(feat)[0]
+            
+            # Ajuste de tolerancia: < -0.08 rechaza solo anomalías severas
+            if score_anomalia < -0.08:
                 return jsonify({
                     "success": False,
-                    "error": "La imagen cargada no corresponde a una palma de aceite o no presenta la estructura anatómica foliar válida."
+                    "error": f"Error de Selección: La imagen cargada no parece corresponder a una palma de aceite. (Score anatómico: {score_anomalia:.3f})"
                 }), 400
 
+        # 2. Inferencia y Filtro de Energía
         if model_eff is not None:
             tensor_img = val_transforms(bokeh_img).unsqueeze(0).to(DEVICE)
             with torch.no_grad():
                 outputs = model_eff(tensor_img)
                 probs = F.softmax(outputs, dim=1)
+                
+                max_prob, pred_idx = torch.max(probs, dim=1)
+                confianza_val = max_prob.item()
+                energy_score = -1.0 * torch.logsumexp(outputs, dim=1).item()
+                
+                # Tolerancia del clasificador: mínimo 45% probabilidad y energía <-1.0
+                if confianza_val < 0.45 or energy_score > -1.0:
+                    return jsonify({
+                        "success": False,
+                        "error": f"Imagen rechazada: Superó el filtro anatómico, pero no es reconocida con suficiente certeza por el clasificador (Confianza: {confianza_val*100:.1f}%, Energía: {energy_score:.2f})."
+                    }), 400
+                
                 probabilities = probs.cpu().numpy()[0].tolist()
         else:
             probabilities = [0.25, 0.25, 0.25, 0.25]
@@ -382,5 +396,4 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
-
+    app.run(host="0.0.0.0", port=5000, debug=True)
