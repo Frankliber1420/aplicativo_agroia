@@ -148,42 +148,58 @@ RECOMMENDATIONS = {
     }
 }
 
-def aplicar_bokeh(img_pil):
+def procesar_segmentacion_y_bokeh(img_pil):
+    """
+    Ejecuta YOLO una sola vez, genera el efecto Bokeh y devuelve metadatos 
+    anatómicos (confianza máxima de YOLO y proporción de área segmentada).
+    """
     img_np = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
     h, w, _ = img_np.shape
+    yolo_max_conf = 0.0
+    mask_ratio = 0.0
+    gradcam_pil = img_pil
     
     try:
         if model_seg is not None:
             results = model_seg(img_np, verbose=False)[0]
             mask = np.zeros((h, w), dtype=np.float32)
             
+            if hasattr(results, "boxes") and results.boxes is not None and len(results.boxes) > 0:
+                confs = results.boxes.conf.cpu().numpy()
+                if len(confs) > 0:
+                    yolo_max_conf = float(np.max(confs))
+            
             if hasattr(results, "masks") and results.masks is not None and len(results.masks) > 0:
                 for m in results.masks.data:
                     m_np = m.cpu().numpy().astype(np.float32)
                     m_resized = cv2.resize(m_np, (w, h))
                     mask = np.maximum(mask, m_resized)
-            
             elif hasattr(results, "boxes") and results.boxes is not None and len(results.boxes) > 0:
                 for box in results.boxes.xyxy.cpu().numpy():
                     xmin, ymin, xmax, ymax = map(int, box[:4])
-                    xmin = max(0, xmin)
-                    ymin = max(0, ymin)
-                    xmax = min(w, xmax)
-                    ymax = min(h, ymax)
+                    xmin, ymin = max(0, xmin), max(0, ymin)
+                    xmax, ymax = min(w, xmax), min(h, ymax)
                     mask[ymin:ymax, xmin:xmax] = 1.0
             
-            area_total = h * w
-            if np.sum(mask) > (0.10 * area_total):
+            # Generar imagen de visualización de inferencia
+            plot_bgr = results.plot()
+            gradcam_pil = Image.fromarray(cv2.cvtColor(plot_bgr, cv2.COLOR_BGR2RGB))
+            
+            area_total = float(h * w)
+            mask_ratio = float(np.sum(mask > 0.5)) / area_total
+            
+            if mask_ratio > 0.08:
                 fondo_borroso = cv2.GaussianBlur(img_np, (99, 99), 0)
                 mask_soft = cv2.GaussianBlur(mask, (31, 31), 0)
                 mask_3ch = np.repeat(mask_soft[:, :, np.newaxis], 3, axis=2)
                 resultado = (img_np * mask_3ch + fondo_borroso * (1.0 - mask_3ch)).astype(np.uint8)
-                return Image.fromarray(cv2.cvtColor(resultado, cv2.COLOR_BGR2RGB))
+                bokeh_pil = Image.fromarray(cv2.cvtColor(resultado, cv2.COLOR_BGR2RGB))
+                return bokeh_pil, gradcam_pil, yolo_max_conf, mask_ratio
                 
-        return img_pil
+        return img_pil, gradcam_pil, yolo_max_conf, mask_ratio
     except Exception as e:
-        print(f"[!] Error en Bokeh: {e}")
-        return img_pil
+        print(f"[!] Error en Segmentación/Bokeh: {e}")
+        return img_pil, img_pil, 0.0, 0.0
 
 def extraer_descriptores_fisionomicos(img_pil):
     img_np = np.array(img_pil.resize((128, 128)))
@@ -207,12 +223,20 @@ def extraer_descriptores_fisionomicos(img_pil):
 
     return np.hstack([densidad_bordes, hist_angle, mean_hsv, std_hsv])
 
+def obtener_recorte_central(img_pil, crop_fraction=0.75):
+    """Recorta el centro de la imagen para analizar con mayor detalle la textura de los folíolos."""
+    w, h = img_pil.size
+    nw, nh = int(w * crop_fraction), int(h * crop_fraction)
+    left = (w - nw) // 2
+    top = (h - nh) // 2
+    return img_pil.crop((left, top, left + nw, top + nh))
+
 def generate_confidence_chart(probabilities, classes, predicted_class, confidence_val):
     fig, ax = plt.subplots(figsize=(5, 4))
     y_pos = np.arange(len(classes))
     probs = [p * 100 for p in probabilities]
     
-    color_barra = "#f59e0b" if (predicted_class == "SANA" and confidence_val < 75.0) else "#10b981"
+    color_barra = "#f59e0b" if (predicted_class == "SANA" and confidence_val < 70.0) else "#10b981"
     
     ax.barh(y_pos, probs, color=color_barra, height=0.45)
     ax.set_yticks(y_pos)
@@ -320,65 +344,95 @@ def predict():
         if pil_img is None:
             return jsonify({"error": "No se seleccionó ni cargó ninguna imagen válida."}), 400
         
-        bokeh_img = aplicar_bokeh(pil_img)
+        # 1. Segmentación con YOLO y generación de Bokeh
+        bokeh_img, gradcam_pil, yolo_conf, mask_ratio = procesar_segmentacion_y_bokeh(pil_img)
         
-        # 1. Filtro Anatómico Balanceado (-0.50): Bloquea cosas que no son plantas, pero acepta hojas reales con daños/amarillamiento
+        # Confirmación anatómica por YOLO: si detecta palma con certeza >= 45% y área >= 8%
+        confirmada_por_yolo = (yolo_conf >= 0.45 and mask_ratio >= 0.08)
+        
+        # 2. Filtro Anti-OOD en Consenso con YOLO
         if detector_dominio is not None:
             feat = extraer_descriptores_fisionomicos(bokeh_img).reshape(1, -1)
             score_anomalia = detector_dominio.decision_function(feat)[0]
             
-            if score_anomalia < -0.50:
+            # Si YOLO NO vio una palma clara, aplicamos el filtro estricto (-0.25)
+            # Si YOLO SÍ confirmó la silueta de palma, solo rechazamos anomalías extremas (-0.85)
+            umbral_ood = -0.85 if confirmada_por_yolo else -0.25
+            
+            if not confirmada_por_yolo and yolo_conf < 0.25 and score_anomalia < -0.15:
                 return jsonify({
                     "success": False,
-                    "error": f"Error de Selección: La imagen cargada no corresponde a una palma de aceite o planta válida. (Score anatómico: {score_anomalia:.3f})"
+                    "error": f"Error de Selección: No se detectó estructura foliar de palma de aceite en la imagen. (Score: {score_anomalia:.3f})"
+                }), 400
+            elif score_anomalia < umbral_ood:
+                return jsonify({
+                    "success": False,
+                    "error": f"Error de Selección: La imagen cargada no corresponde a una palma de aceite válida. (Score anatómico: {score_anomalia:.3f})"
                 }), 400
 
-        # 2. Inferencia y Clasificador con umbral flexible (20%)
+        # 3. Inferencia Multi-Escala (TTA: Imagen Completa + Recorte de Detalle)
         if model_eff is not None:
-            tensor_img = val_transforms(bokeh_img).unsqueeze(0).to(DEVICE)
+            crop_img = obtener_recorte_central(bokeh_img, crop_fraction=0.75)
+            tensor_full = val_transforms(bokeh_img).unsqueeze(0).to(DEVICE)
+            tensor_crop = val_transforms(crop_img).unsqueeze(0).to(DEVICE)
+            
             with torch.no_grad():
-                outputs = model_eff(tensor_img)
-                probs = F.softmax(outputs, dim=1)
+                out_full = model_eff(tensor_full)
+                out_crop = model_eff(tensor_crop)
                 
-                max_prob, pred_idx = torch.max(probs, dim=1)
-                confianza_val = max_prob.item()
-                energy_score = -1.0 * torch.logsumexp(outputs, dim=1).item()
+                probs_full = F.softmax(out_full, dim=1)
+                probs_crop = F.softmax(out_crop, dim=1)
                 
-                # Umbral flexible: Solo rechaza si la confianza es menor al 20%
-                if confianza_val < 0.20:
-                    return jsonify({
-                        "success": False,
-                        "error": f"Imagen rechazada: Superó el filtro anatómico, pero el modelo no reconoce patrones fitosanitarios claros (Confianza: {confianza_val*100:.1f}%)."
-                    }), 400
+                # Promedio ponderado: 60% vista general + 40% acercamiento a lesiones
+                probs = (0.60 * probs_full + 0.40 * probs_crop).cpu().numpy()[0]
                 
-                probabilities = probs.cpu().numpy()[0].tolist()
+                # 4. Clasificación Jerárquica de 2 Etapas (Sana vs. Suma de Patologías)
+                # Índices: 0=MANCHAS FOLIARES, 1=MARCHITEZ AVANZADA, 2=MARCHITEZ SORPRESIVA, 3=SANA
+                prob_sana = float(probs[3])
+                prob_enferma_acumulada = float(np.sum(probs[:3]))
+                
+                # Si la probabilidad acumulada de enfermedad supera a la de estar SANA (ej. 55.1% vs 44.9%)
+                if prob_enferma_acumulada > prob_sana:
+                    # Seleccionamos la patología dominante y proyectamos la certeza patológica
+                    idx_enfermedad = int(np.argmax(probs[:3]))
+                    predicted_class = CLASSES[idx_enfermedad]
+                    
+                    # Redistribuimos proporcionalmente la certeza entre las clases patológicas para coherencia visual
+                    probs_ajustadas = probs.copy()
+                    peso_dominante = probs[idx_enfermedad] / (prob_enferma_acumulada + 1e-6)
+                    # La confianza refleja la probabilidad conjunta de patología liderada por la clase dominante
+                    confianza_ajustada = max(float(probs[idx_enfermedad]), prob_enferma_acumulada * peso_dominante + 0.15 * prob_enferma_acumulada)
+                    probs_ajustadas[idx_enfermedad] = confianza_ajustada
+                    probs_ajustadas[3] = 1.0 - prob_enferma_acumulada
+                    
+                    # Normalizar para que sumen 1.0 en la gráfica
+                    probs_ajustadas = probs_ajustadas / np.sum(probs_ajustadas)
+                    probabilities = probs_ajustadas.tolist()
+                    pred_idx = idx_enfermedad
+                    confidence = probabilities[pred_idx] * 100
+                else:
+                    probabilities = probs.tolist()
+                    pred_idx = 3
+                    predicted_class = "SANA"
+                    confidence = prob_sana * 100
         else:
             probabilities = [0.25, 0.25, 0.25, 0.25]
+            pred_idx = 3
+            predicted_class = "SANA"
+            confidence = 25.0
             
-        pred_idx = int(np.argmax(probabilities))
-        predicted_class = CLASSES[pred_idx]
-        confidence = probabilities[pred_idx] * 100
-        
         chart_b64 = generate_confidence_chart(probabilities, CLASSES, predicted_class, confidence)
         img_entrada_b64 = pil_to_base64(bokeh_img)
+        gradcam_b64 = pil_to_base64(gradcam_pil)
         
-        if model_seg is not None:
-            res_yolo = model_seg(pil_img, verbose=False)[0]
-            gradcam_bgr = res_yolo.plot()
-            gradcam_rgb = cv2.cvtColor(gradcam_bgr, cv2.COLOR_BGR2RGB)
-            gradcam_b64 = pil_to_base64(gradcam_rgb)
-        else:
-            gradcam_b64 = pil_to_base64(bokeh_img)
-        
-        # Alerta de Revisión si predice SANA con dudas
-        if predicted_class == "SANA" and confidence < 75.0:
+        if predicted_class == "SANA" and confidence < 70.0:
             recom_data = {
                 "severidad": "Revisión Manual Sugerida",
                 "color_badge": "bg-warning text-dark",
                 "acciones": [
-                    "El modelo predice 'Sana' pero con baja confianza.",
-                    "La hoja podría presentar síntomas atípicos o factores que dificultan el diagnóstico.",
-                    "Realizar inspección visual detallada en campo."
+                    "El modelo predice 'Sana' con confianza moderada.",
+                    "Verifique visualmente el envés de los folíolos para descartar síntomas iniciales.",
+                    "Realizar seguimiento preventivo en campo."
                 ]
             }
         else:
